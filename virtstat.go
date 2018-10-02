@@ -21,6 +21,10 @@ func parseArguments() {
 
 }
 
+/* Structs to be filled from xml
+ * description of domain
+ * XML desc: https://libvirt.org/formatdomain.html
+ */
 type Disk struct {
 	XMLName xml.Name `xml:"disk"`
 	Target  struct {
@@ -50,48 +54,46 @@ func printDisksStats(domIns *libvirt.Domain) {
 		name    string
 		dbstats libvirt.DomainBlockStats
 	}
-	var disks_stats []Stats
+	var disks_stats []*Stats
 	for _, v := range domDisks {
 		var stats Stats
 		stats.name = v.Target.DiskName
-		disks_stats = append(disks_stats, stats)
+		disks_stats = append(disks_stats, &stats)
 	}
 	header := "\nDevice:     r/s         w/s       rkB/s       wkB/s\n"
-	c := 0
 	var actualStats Stats
-	var index int
-	for c < loops {
+  // Funny loop
+  for c:=0; c<loops; c+=1 {
     t := time.Now()
     fmt.Printf("%d-%02d-%02d %02d:%02d:%02d",
       t.Year(), t.Month(), t.Day(),
       t.Hour(), t.Minute(), t.Second())
 		fmt.Printf(header)
 		for _, v := range domDisks {
-			for k, s := range disks_stats {
+			for _, s := range disks_stats {
 				if s.name == v.Target.DiskName {
-					index = k
-				}
+		    	dbs, _ := domIns.BlockStats(v.Target.DiskName)
+		    	if c != 0 {
+		    		actualStats.dbstats.RdReq = dbs.RdReq - s.dbstats.RdReq
+		    		actualStats.dbstats.WrReq = dbs.WrReq - s.dbstats.WrReq
+		    		actualStats.dbstats.RdBytes = (dbs.RdBytes - s.dbstats.RdBytes) / 1024
+		    		actualStats.dbstats.WrBytes = (dbs.WrBytes - s.dbstats.WrBytes) / 1024
+		    	}
+		    	fmt.Printf("%1s%12d%12d%12d%12d\n", v.Target.DiskName,
+		    		actualStats.dbstats.RdReq,
+		    		actualStats.dbstats.WrReq,
+		    		actualStats.dbstats.RdBytes,
+		    		actualStats.dbstats.WrBytes)
+		    	s.dbstats.RdReq = dbs.RdReq
+		    	s.dbstats.WrReq = dbs.WrReq
+		    	s.dbstats.RdBytes = dbs.RdBytes
+		    	s.dbstats.WrBytes = dbs.WrBytes
+          break
+        }
 			}
-			dbs, _ := domIns.BlockStats(v.Target.DiskName)
-			if c != 0 {
-				actualStats.dbstats.RdReq = dbs.RdReq - disks_stats[index].dbstats.RdReq
-				actualStats.dbstats.WrReq = dbs.WrReq - disks_stats[index].dbstats.WrReq
-				actualStats.dbstats.RdBytes = (dbs.RdBytes - disks_stats[index].dbstats.RdBytes) / 1024
-				actualStats.dbstats.WrBytes = (dbs.WrBytes - disks_stats[index].dbstats.WrBytes) / 1024
-			}
-			fmt.Printf("%1s%12d%12d%12d%12d\n", v.Target.DiskName,
-				actualStats.dbstats.RdReq,
-				actualStats.dbstats.WrReq,
-				actualStats.dbstats.RdBytes,
-				actualStats.dbstats.WrBytes)
-			disks_stats[index].dbstats.RdReq = dbs.RdReq
-			disks_stats[index].dbstats.WrReq = dbs.WrReq
-			disks_stats[index].dbstats.RdBytes = dbs.RdBytes
-			disks_stats[index].dbstats.WrBytes = dbs.WrBytes
 		}
 		fmt.Printf("\n")
 		time.Sleep(1000 * time.Millisecond)
-		c += 1
 	}
 }
 
@@ -107,15 +109,12 @@ func main() {
 	}
 	domIns := &libvirt.Domain{}
 	for _, dom := range doms {
-		name, err := dom.GetName()
-		if err == nil {
-			fmt.Printf("  %s\n", name)
-		}
+		name, _ := dom.GetName()
 		if strings.Compare(name, domainname) == 0 {
 			domIns = &dom
 			break
 		}
-		name, err = dom.GetUUIDString()
+		name, _ = dom.GetUUIDString()
 		if strings.Compare(name, domainname) == 0 {
 			domIns = &dom
 			break
