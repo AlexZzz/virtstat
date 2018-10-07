@@ -45,7 +45,7 @@ func getDisks(d *libvirt.Domain) []Disk {
 	return D.Devices.Disks
 }
 
-func printDisksStats(domIns *libvirt.Domain) {
+func printDisksStats(domIns *libvirt.Domain) error {
 	domDisks := getDisks(domIns)
 	type Stats struct {
 		name    string
@@ -59,6 +59,9 @@ func printDisksStats(domIns *libvirt.Domain) {
 		}
 		stats.name = v.Target.DiskName
 		disks_stats = append(disks_stats, &stats)
+	}
+	if len(disks_stats) == 0 {
+		return errNoSuchDisk(&serial)
 	}
 	header := "\nDevice:     r/s         w/s       rkB/s       wkB/s\n"
 	var actualStats Stats
@@ -95,6 +98,7 @@ func printDisksStats(domIns *libvirt.Domain) {
 		fmt.Printf("\n")
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
+	return nil
 }
 
 type errMessage struct {
@@ -104,6 +108,17 @@ type errMessage struct {
 func errNoSuchDomain(dom *string) *errMessage {
 	return &errMessage{
 		message: (*dom + ": no such domain"),
+	}
+}
+
+func errNoSuchDisk(serial *string) *errMessage {
+	if *serial != "all" {
+		return &errMessage{
+			message: (*serial + ": no such disk"),
+		}
+	}
+	return &errMessage{
+		message: ("no disks found"),
 	}
 }
 
@@ -149,7 +164,10 @@ func connectAndPrint(c *cli.Context) error {
 	if domIns == nil {
 		return errNoSuchDomain(&domainname)
 	}
-	printDisksStats(domIns)
+	err = printDisksStats(domIns)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
