@@ -15,6 +15,7 @@ import (
 var domainname string
 var loops int
 var interval int64
+var serial string
 
 /* Structs to be filled from xml
  * description of domain
@@ -26,6 +27,7 @@ type Disk struct {
 		DiskName string `xml:"dev,attr"`
 		DiskBus  string `xml:"bus,attr"`
 	} `xml:"target"`
+	Serial string `xml:"serial"`
 }
 type Devices struct {
 	XMLName xml.Name `xml:"devices"`
@@ -52,6 +54,9 @@ func printDisksStats(domIns *libvirt.Domain) {
 	var disks_stats []*Stats
 	for _, v := range domDisks {
 		var stats Stats
+		if serial != "all" && serial != v.Target.DiskName && serial != v.Serial {
+			continue
+		}
 		stats.name = v.Target.DiskName
 		disks_stats = append(disks_stats, &stats)
 	}
@@ -172,6 +177,14 @@ func main() {
 		{
 			Name:  "count",
 			Usage: "print stats count times (default 999999)",
+		},
+	}
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:        "disk, d",
+			Value:       "all",
+			Usage:       "disk name or serial",
+			Destination: &serial,
 		},
 	}
 	app.Version = "1.0"
