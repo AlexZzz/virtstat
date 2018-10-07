@@ -209,7 +209,7 @@ func main() {
 	cli.AppHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
-   {{.HelpName}} {{if .VisibleFlags}}[domain]{{end}}{{if .Commands}} interval count{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
+   {{.HelpName}} {{if .VisibleFlags}}<domain>{{end}}{{if .Commands}} [global options] {{end}}{{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[interval] [count]{{end}}
    {{if len .Authors}}
 AUTHOR:
    {{range .Authors}}{{ . }}{{end}}
