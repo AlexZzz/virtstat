@@ -37,16 +37,18 @@ type Domain struct {
 	Devices Devices `xml:"devices"`
 }
 
-func getDisks(d *libvirt.Domain) []Disk {
+func getDisks(d *libvirt.Domain) ([]Disk, error) {
 	var D Domain
-	var x string
-	x, _ = d.GetXMLDesc(libvirt.DomainXMLFlags(0))
+	x, err := d.GetXMLDesc(libvirt.DomainXMLFlags(0))
 	xml.Unmarshal([]byte(x), &D)
-	return D.Devices.Disks
+	return D.Devices.Disks, err
 }
 
 func printDisksStats(domIns *libvirt.Domain) error {
-	domDisks := getDisks(domIns)
+	domDisks, err := getDisks(domIns)
+	if err != nil {
+		return err
+	}
 	type Stats struct {
 		name    string
 		dbstats libvirt.DomainBlockStats
@@ -75,7 +77,10 @@ func printDisksStats(domIns *libvirt.Domain) error {
 		for _, v := range domDisks {
 			for _, s := range disks_stats {
 				if s.name == v.Target.DiskName {
-					dbs, _ := domIns.BlockStats(v.Target.DiskName)
+					dbs, err := domIns.BlockStats(v.Target.DiskName)
+					if err != nil {
+						return err
+					}
 					if c != 0 {
 						actualStats.dbstats.RdReq = dbs.RdReq - s.dbstats.RdReq
 						actualStats.dbstats.WrReq = dbs.WrReq - s.dbstats.WrReq
@@ -129,32 +134,50 @@ func (e *errMessage) Error() string {
 func connectAndPrint(c *cli.Context) error {
 
 	domainname = c.Args().Get(0)
-
-	interval, _ = strconv.ParseInt(c.Args().Get(1), 10, 64)
+	var err error
+	if c.NArg() > 1 {
+		interval, err = strconv.ParseInt(c.Args().Get(1), 10, 64)
+		if err != nil {
+			return err
+		}
+	}
 	if interval == 0 {
 		interval = 1
 	}
 
-	loops, _ = strconv.Atoi(c.Args().Get(2))
+	if c.NArg() > 2 {
+		loops, err = strconv.Atoi(c.Args().Get(2))
+		if err != nil {
+			return err
+		}
+	}
 	if loops == 0 {
 		loops = 999999
 	}
 
 	conn, err := libvirt.NewConnect("qemu:///system")
 	if err != nil {
+		return err
 	}
 	defer conn.Close()
 	doms, err := conn.ListAllDomains(libvirt.CONNECT_LIST_DOMAINS_ACTIVE)
 	if err != nil {
+		return err
 	}
 	var domIns *libvirt.Domain
 	for _, dom := range doms {
-		name, _ := dom.GetName()
+		name, err := dom.GetName()
+		if err != nil {
+			return err
+		}
 		if strings.Compare(name, domainname) == 0 {
 			domIns = &dom
 			break
 		}
-		name, _ = dom.GetUUIDString()
+		name, err = dom.GetUUIDString()
+		if err != nil {
+			return err
+		}
 		if strings.Compare(name, domainname) == 0 {
 			domIns = &dom
 			break
@@ -205,7 +228,7 @@ func main() {
 			Destination: &serial,
 		},
 	}
-	app.Version = "1.1"
+	app.Version = "1.2"
 	cli.AppHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
