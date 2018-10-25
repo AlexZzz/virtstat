@@ -66,6 +66,8 @@ func printDisksStats(domIns *libvirt.Domain) error {
 		return errNoSuchDisk(&serial)
 	}
 	var actualStats Stats
+  var wr_req, rd_req, fl_req int64
+  var wr_time, rd_time, fl_time int64
 	// Funny loop
 	for c := 0; c < loops; c += 1 {
 		t := time.Now()
@@ -93,12 +95,9 @@ func printDisksStats(domIns *libvirt.Domain) error {
             actualStats.dbstats.FlushTotalTimes = (dbs.FlushTotalTimes - s.dbstats.FlushTotalTimes)
             actualStats.dbstats.Errs = (dbs.Errs - s.dbstats.Errs)
 					}
-          var wr_req int64 = actualStats.dbstats.WrReq/interval
-          var rd_req int64 = actualStats.dbstats.RdReq/interval
-          var fl_req int64 = actualStats.dbstats.FlushReq/interval
-          var rd_time int64
-          var wr_time int64
-          var fl_time int64
+          wr_req = actualStats.dbstats.WrReq/interval
+          rd_req = actualStats.dbstats.RdReq/interval
+          fl_req = actualStats.dbstats.FlushReq/interval
           if wr_req == 0 {
             wr_time = 0
           } else {
@@ -232,7 +231,6 @@ func connectAndPrint(c *cli.Context) error {
 }
 
 func main() {
-	loops = 9999999
 	app := cli.NewApp()
 	app.Action = connectAndPrint
 	app.Name = "virtstat"
