@@ -5,26 +5,18 @@ report statistics for libvirt domains
 
 One argument required - domain name or uuid:
 ```
-~# ./virtstat instance-0003dab3
-2018-10-06 15:56:28
-Device:     r/s         w/s       rkB/s       wkB/s
-hda           0           0           0           0
-vda           0           0           0           0
+~# ./virtstat -d sdb instance-0000ef26
+2018-10-25 16:49:46
+Device:       r/s         w/s     flush/s       rkB/s       wkB/s     r_await     w_await flush_await       err/s
+sdb           0           0           0           0           0        0.00        0.00        0.00           0
 
-2018-10-06 15:56:29
-Device:     r/s         w/s       rkB/s       wkB/s
-hda           0           0           0           0
-vda          62        2561        1420      164566
+2018-10-25 16:49:47
+Device:       r/s         w/s     flush/s       rkB/s       wkB/s     r_await     w_await flush_await       err/s
+sdb           0          35          35           0         140        0.00        0.11       28.05           0
 
-2018-10-06 15:56:30
-Device:     r/s         w/s       rkB/s       wkB/s
-hda           0           0           0           0
-vda          36         765         783       39593
-
-2018-10-06 15:56:31
-Device:     r/s         w/s       rkB/s       wkB/s
-hda           0           0           0           0
-vda          33          16         818          64
+2018-10-25 16:49:48
+Device:       r/s         w/s     flush/s       rkB/s       wkB/s     r_await     w_await flush_await       err/s
+sdb           0           3           3           0          12        0.00        0.12      137.23           0
 
 ^C
 ```

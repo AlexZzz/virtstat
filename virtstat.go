@@ -65,7 +65,6 @@ func printDisksStats(domIns *libvirt.Domain) error {
 	if len(disks_stats) == 0 {
 		return errNoSuchDisk(&serial)
 	}
-	header := "\nDevice:     r/s         w/s       rkB/s       wkB/s\n"
 	var actualStats Stats
 	// Funny loop
 	for c := 0; c < loops; c += 1 {
@@ -73,11 +72,13 @@ func printDisksStats(domIns *libvirt.Domain) error {
 		fmt.Printf("%d-%02d-%02d %02d:%02d:%02d",
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second())
-		fmt.Printf(header)
+    fmt.Printf("\n%1s%10s%12s%12s%12s%12s%12s%12s%12s%12s\n",
+        "Device:","r/s","w/s","flush/s","rkB/s","wkB/s",
+        "r_await","w_await","flush_await","err/s")
 		for _, v := range domDisks {
 			for _, s := range disks_stats {
 				if s.name == v.Target.DiskName {
-					dbs, err := domIns.BlockStats(v.Target.DiskName)
+					dbs, err := domIns.BlockStatsFlags(v.Target.DiskName,4)
 					if err != nil {
 						return err
 					}
@@ -86,16 +87,52 @@ func printDisksStats(domIns *libvirt.Domain) error {
 						actualStats.dbstats.WrReq = dbs.WrReq - s.dbstats.WrReq
 						actualStats.dbstats.RdBytes = (dbs.RdBytes - s.dbstats.RdBytes) / 1024
 						actualStats.dbstats.WrBytes = (dbs.WrBytes - s.dbstats.WrBytes) / 1024
+            actualStats.dbstats.WrTotalTimes = (dbs.WrTotalTimes - s.dbstats.WrTotalTimes)
+            actualStats.dbstats.RdTotalTimes = (dbs.RdTotalTimes - s.dbstats.RdTotalTimes)
+            actualStats.dbstats.FlushReq = (dbs.FlushReq - s.dbstats.FlushReq)
+            actualStats.dbstats.FlushTotalTimes = (dbs.FlushTotalTimes - s.dbstats.FlushTotalTimes)
+            actualStats.dbstats.Errs = (dbs.Errs - s.dbstats.Errs)
 					}
-					fmt.Printf("%1s%12d%12d%12d%12d\n", v.Target.DiskName,
-						actualStats.dbstats.RdReq/interval,
-						actualStats.dbstats.WrReq/interval,
+          var wr_req int64 = actualStats.dbstats.WrReq/interval
+          var rd_req int64 = actualStats.dbstats.RdReq/interval
+          var fl_req int64 = actualStats.dbstats.FlushReq/interval
+          var rd_time int64
+          var wr_time int64
+          var fl_time int64
+          if wr_req == 0 {
+            wr_time = 0
+          } else {
+            wr_time = actualStats.dbstats.WrTotalTimes/wr_req
+          }
+          if rd_req == 0 {
+            rd_time = 0
+          } else {
+            rd_time = actualStats.dbstats.RdTotalTimes/rd_req
+          }
+          if fl_req == 0{
+            fl_time = 0
+          } else {
+            fl_time = actualStats.dbstats.FlushTotalTimes/fl_req
+          }
+					fmt.Printf("%1s%12d%12d%12d%12d%12d%12.2f%12.2f%12.2f%12d\n", v.Target.DiskName,
+						rd_req,
+						wr_req,
+            fl_req,
 						actualStats.dbstats.RdBytes/interval,
-						actualStats.dbstats.WrBytes/interval)
+						actualStats.dbstats.WrBytes/interval,
+            float64(rd_time/1000)/1000,
+            float64(wr_time/1000)/1000,
+            float64(fl_time/1000)/1000,
+            actualStats.dbstats.Errs/interval)
 					s.dbstats.RdReq = dbs.RdReq
 					s.dbstats.WrReq = dbs.WrReq
 					s.dbstats.RdBytes = dbs.RdBytes
 					s.dbstats.WrBytes = dbs.WrBytes
+          s.dbstats.WrTotalTimes = dbs.WrTotalTimes
+          s.dbstats.RdTotalTimes = dbs.RdTotalTimes
+          s.dbstats.FlushReq = dbs.FlushReq
+          s.dbstats.FlushTotalTimes = dbs.FlushTotalTimes
+          s.dbstats.Errs = dbs.Errs
 					break
 				}
 			}
@@ -228,7 +265,7 @@ func main() {
 			Destination: &serial,
 		},
 	}
-	app.Version = "1.2"
+	app.Version = "1.3"
 	cli.AppHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
