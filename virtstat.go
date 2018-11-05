@@ -22,7 +22,7 @@ var serial string
  * description of domain
  * XML desc: https://libvirt.org/formatdomain.html
  */
-type Disk struct {
+type disk struct {
 	XMLName xml.Name `xml:"disk"`
 	Target  struct {
 		DiskName string `xml:"dev,attr"`
@@ -32,13 +32,13 @@ type Disk struct {
 }
 type devices struct {
 	XMLName xml.Name `xml:"devices"`
-	Disks   []Disk   `xml:"disk"`
+	Disks   []disk   `xml:"disk"`
 }
 type domain struct {
 	Devices devices `xml:"devices"`
 }
 
-func getDisks(d *libvirt.Domain) ([]Disk, error) {
+func getDisks(d *libvirt.Domain) ([]disk, error) {
 	var D domain
 	x, err := d.GetXMLDesc(libvirt.DomainXMLFlags(0))
 	xml.Unmarshal([]byte(x), &D)
@@ -55,6 +55,8 @@ func printDisksStats(domIns *libvirt.Domain) error {
 		dbstats libvirt.DomainBlockStats
 	}
 	var disksStats []*Stats
+
+	// Filter disks by name or serial
 	for _, v := range domDisks {
 		var stats Stats
 		if serial != "all" && serial != v.Target.DiskName && serial != v.Serial {
@@ -69,7 +71,11 @@ func printDisksStats(domIns *libvirt.Domain) error {
 	var actualStats Stats
 	var wrReq, rdReq, flReq int64
 	var wrTime, rdTime, flTime int64
-	// Funny loop
+
+	/* Start looping pre-defined number of times
+	 * Walk through all disks. If disk is not filtered:
+	 * count, print and save statistics
+	 */
 	for c := 0; c < loops; c++ {
 		t := time.Now()
 		fmt.Printf("%d-%02d-%02d %02d:%02d:%02d",
@@ -285,7 +291,6 @@ VERSION:
    {{.Version}}
    {{end}}
 `
-	//parseArguments()
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
