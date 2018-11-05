@@ -30,16 +30,16 @@ type Disk struct {
 	} `xml:"target"`
 	Serial string `xml:"serial"`
 }
-type Devices struct {
+type devices struct {
 	XMLName xml.Name `xml:"devices"`
 	Disks   []Disk   `xml:"disk"`
 }
-type Domain struct {
-	Devices Devices `xml:"devices"`
+type domain struct {
+	Devices devices `xml:"devices"`
 }
 
 func getDisks(d *libvirt.Domain) ([]Disk, error) {
-	var D Domain
+	var D domain
 	x, err := d.GetXMLDesc(libvirt.DomainXMLFlags(0))
 	xml.Unmarshal([]byte(x), &D)
 	return D.Devices.Disks, err
@@ -54,23 +54,23 @@ func printDisksStats(domIns *libvirt.Domain) error {
 		name    string
 		dbstats libvirt.DomainBlockStats
 	}
-	var disks_stats []*Stats
+	var disksStats []*Stats
 	for _, v := range domDisks {
 		var stats Stats
 		if serial != "all" && serial != v.Target.DiskName && serial != v.Serial {
 			continue
 		}
 		stats.name = v.Target.DiskName
-		disks_stats = append(disks_stats, &stats)
+		disksStats = append(disksStats, &stats)
 	}
-	if len(disks_stats) == 0 {
+	if len(disksStats) == 0 {
 		return errNoSuchDisk(&serial)
 	}
 	var actualStats Stats
-	var wr_req, rd_req, fl_req int64
-	var wr_time, rd_time, fl_time int64
+	var wrReq, rdReq, flReq int64
+	var wrTime, rdTime, flTime int64
 	// Funny loop
-	for c := 0; c < loops; c += 1 {
+	for c := 0; c < loops; c++ {
 		t := time.Now()
 		fmt.Printf("%d-%02d-%02d %02d:%02d:%02d",
 			t.Year(), t.Month(), t.Day(),
@@ -79,7 +79,7 @@ func printDisksStats(domIns *libvirt.Domain) error {
 			"Device:", "r/s", "w/s", "flush/s", "rkB/s", "wkB/s",
 			"r_await", "w_await", "flush_await", "err/s")
 		for _, v := range domDisks {
-			for _, s := range disks_stats {
+			for _, s := range disksStats {
 				if s.name == v.Target.DiskName {
 					dbs, err := domIns.BlockStatsFlags(v.Target.DiskName, 4)
 					if err != nil {
@@ -96,33 +96,33 @@ func printDisksStats(domIns *libvirt.Domain) error {
 						actualStats.dbstats.FlushTotalTimes = (dbs.FlushTotalTimes - s.dbstats.FlushTotalTimes)
 						actualStats.dbstats.Errs = (dbs.Errs - s.dbstats.Errs)
 					}
-					wr_req = actualStats.dbstats.WrReq / interval
-					rd_req = actualStats.dbstats.RdReq / interval
-					fl_req = actualStats.dbstats.FlushReq / interval
-					if wr_req == 0 {
-						wr_time = 0
+					wrReq = actualStats.dbstats.WrReq / interval
+					rdReq = actualStats.dbstats.RdReq / interval
+					flReq = actualStats.dbstats.FlushReq / interval
+					if wrReq == 0 {
+						wrTime = 0
 					} else {
-						wr_time = actualStats.dbstats.WrTotalTimes / wr_req
+						wrTime = actualStats.dbstats.WrTotalTimes / wrReq
 					}
-					if rd_req == 0 {
-						rd_time = 0
+					if rdReq == 0 {
+						rdTime = 0
 					} else {
-						rd_time = actualStats.dbstats.RdTotalTimes / rd_req
+						rdTime = actualStats.dbstats.RdTotalTimes / rdReq
 					}
-					if fl_req == 0 {
-						fl_time = 0
+					if flReq == 0 {
+						flTime = 0
 					} else {
-						fl_time = actualStats.dbstats.FlushTotalTimes / fl_req
+						flTime = actualStats.dbstats.FlushTotalTimes / flReq
 					}
 					fmt.Printf("%1s%12d%12d%12d%12d%12d%12.2f%12.2f%12.2f%12d\n", v.Target.DiskName,
-						rd_req,
-						wr_req,
-						fl_req,
+						rdReq,
+						wrReq,
+						flReq,
 						actualStats.dbstats.RdBytes/interval,
 						actualStats.dbstats.WrBytes/interval,
-						float64(rd_time/1000)/1000,
-						float64(wr_time/1000)/1000,
-						float64(fl_time/1000)/1000,
+						float64(rdTime/1000)/1000,
+						float64(wrTime/1000)/1000,
+						float64(flTime/1000)/1000,
 						actualStats.dbstats.Errs/interval)
 					s.dbstats.RdReq = dbs.RdReq
 					s.dbstats.WrReq = dbs.WrReq
