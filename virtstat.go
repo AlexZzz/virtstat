@@ -108,17 +108,17 @@ func printDisksStats(domIns *libvirt.Domain) error {
 					if wrReq == 0 {
 						wrTime = 0
 					} else {
-						wrTime = actualStats.dbstats.WrTotalTimes / wrReq
+						wrTime = actualStats.dbstats.WrTotalTimes / actualStats.dbstats.WrReq
 					}
 					if rdReq == 0 {
 						rdTime = 0
 					} else {
-						rdTime = actualStats.dbstats.RdTotalTimes / rdReq
+            rdTime = actualStats.dbstats.RdTotalTimes / actualStats.dbstats.RdReq
 					}
 					if flReq == 0 {
 						flTime = 0
 					} else {
-						flTime = actualStats.dbstats.FlushTotalTimes / flReq
+						flTime = actualStats.dbstats.FlushTotalTimes / actualStats.dbstats.FlushReq
 					}
 					fmt.Printf("%1s%12d%12d%12d%12d%12d%12.2f%12.2f%12.2f%12d\n", v.Target.DiskName,
 						rdReq,
