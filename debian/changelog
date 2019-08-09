@@ -1,0 +1,11 @@
+virtstat (1.4) stable; urgency=low
+
+  * A lot of nice changes and debian build files
+
+ -- Aleksei Zakharov  <zakharov.a.g@yandex.ru>  Sat, 30 Jan 2019 00:00:00 +0000
+
+virtstat (1.0) stable; urgency=low
+
+  * Initial release
+
+ -- Aleksei Zakharov  <zakharov.a.g@yandex.ru>  Sat, 01 Jan 1970 00:00:00 +0000

@@ -270,7 +270,7 @@ func main() {
 			Destination: &serial,
 		},
 	}
-	app.Version = "1.3"
+	app.Version = "1.4"
 	cli.AppHelpTemplate = `NAME:
    {{.Name}} - {{.Usage}}
 USAGE:
